@@ -1,0 +1,19 @@
+2026-05-07 12:27:36 | INFO | indusense.processing.ingestion:create_artifact_run_dir:39 | Artifact directory created at artifacts/data-ingestion/20260507122736
+2026-05-07 12:27:36 | INFO | indusense.processing.ingestion:normalize_temperature_units:102 | Temperature normalization converted 73 windows and 15105 points
+2026-05-07 12:27:53 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_temperature with 227 duplicate groups resolved
+2026-05-07 12:28:10 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_pression with 131 duplicate groups resolved
+2026-05-07 12:28:12 | INFO | indusense.processing.ingestion:deduplicate_incidents:212 | Deduplicated incidents with 0 duplicate groups resolved
+2026-05-07 12:28:35 | INFO | indusense.processing.ingestion:create_artifact_run_dir:39 | Artifact directory created at artifacts/data-ingestion/20260507122835
+2026-05-07 12:28:35 | INFO | indusense.processing.ingestion:normalize_temperature_units:102 | Temperature normalization converted 73 windows and 15105 points
+2026-05-07 12:28:57 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_temperature with 227 duplicate groups resolved
+2026-05-07 12:29:16 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_pression with 131 duplicate groups resolved
+2026-05-07 12:29:18 | INFO | indusense.processing.ingestion:deduplicate_incidents:212 | Deduplicated incidents with 0 duplicate groups resolved
+2026-05-07 12:29:18 | INFO | indusense.processing.ingestion:build_gold_dataset_candidate:537 | Gold dataset candidate built with 66678 rows
+2026-05-07 12:29:19 | INFO | indusense.processing.reporting:write_data_ingestion_report:81 | Markdown ingestion report written to artifacts/data-ingestion/20260507122835/report.md
+2026-05-07 12:50:00 | INFO | indusense.processing.ingestion:create_artifact_run_dir:39 | Artifact directory created at artifacts/data-ingestion/20260507125000
+2026-05-07 12:50:00 | INFO | indusense.processing.ingestion:normalize_temperature_units:102 | Temperature normalization converted 73 windows and 15105 points
+2026-05-07 12:50:19 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_temperature with 227 duplicate groups resolved
+2026-05-07 12:50:37 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_pression with 131 duplicate groups resolved
+2026-05-07 12:50:39 | INFO | indusense.processing.ingestion:deduplicate_incidents:212 | Deduplicated incidents with 0 duplicate groups resolved
+2026-05-07 12:50:39 | INFO | indusense.processing.ingestion:build_gold_dataset_candidate:537 | Gold dataset candidate built with 66678 rows
+2026-05-07 12:50:40 | INFO | indusense.processing.reporting:write_data_ingestion_report:81 | Markdown ingestion report written to artifacts/data-ingestion/20260507125000/report.md

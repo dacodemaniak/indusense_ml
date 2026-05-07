@@ -1,0 +1,4 @@
+-- InduSense 4.0
+-- Schema and seed data are managed by Alembic.
+-- This file remains intentionally empty so PostgreSQL container bootstrap
+-- does not conflict with application-managed migrations.

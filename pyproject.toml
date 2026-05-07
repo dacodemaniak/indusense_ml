@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=80.9.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "indusense"
 version = "0.1.0"
@@ -5,8 +9,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.16.5",
+    "loguru>=0.7.3",
     "matplotlib>=3.10.3",
+    "mdutils>=1.8.0",
     "pandas>=3.0.2",
+    "psycopg[binary]>=3.2.10",
+    "pydantic>=2.11.4",
+    "python-dotenv>=1.1.1",
+    "scikit-learn>=1.7.0",
+    "sqlalchemy>=2.0.41",
 ]
 
 [dependency-groups]
@@ -14,3 +26,9 @@ dev = [
     "ipykernel>=7.2.0",
     "jupyter>=1.1.1",
 ]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
