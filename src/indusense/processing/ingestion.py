@@ -454,7 +454,12 @@ def build_gold_dataset_candidate(
     time_column: str = "event_ts",
     machine_column: str = "machine_id_std",
 ) -> pd.DataFrame:
-    """Build a first hourly Gold candidate from cleaned Silver-like inputs."""
+    """Build a multi-horizon hourly Gold candidate with rolling window features for ML training.
+
+    Rolling windows computed per machine (6h, 12h, 24h) for temperature and pressure cover
+    short-term spikes, medium-term drift and daily patterns without cross-machine leakage.
+    Labels are computed at four horizons (6h, 12h, 24h, 48h) to support model selection.
+    """
     temp_hourly = (
         temperature_silver.dropna(subset=[time_column, "sensor_value"])
         .assign(window_start=lambda df: df[time_column].dt.floor("h"))
@@ -475,30 +480,53 @@ def build_gold_dataset_candidate(
             pressure_missing_count=("is_missing", "sum"),
         )
     )
-    gold = temp_hourly.merge(
-        pressure_hourly,
-        on=[machine_column, "window_start"],
-        how="outer",
-    ).sort_values([machine_column, "window_start"])
-
+    gold = (
+        temp_hourly.merge(
+            pressure_hourly,
+            on=[machine_column, "window_start"],
+            how="outer",
+        )
+        .sort_values([machine_column, "window_start"])
+        .reset_index(drop=True)
+    )
     gold["window_end"] = gold["window_start"] + pd.Timedelta(hours=1)
 
-    gold["temp_mean_24h"] = gold.groupby(machine_column)["temp_mean_1h"].transform(
-        lambda series: series.rolling(24, min_periods=1).mean()
+    # Multi-horizon rolling windows for temperature and pressure (6h / 12h / 24h)
+    for hours in [6, 12, 24]:
+        gold[f"temp_mean_{hours}h"] = gold.groupby(machine_column)["temp_mean_1h"].transform(
+            lambda s, w=hours: s.rolling(w, min_periods=1).mean()
+        )
+        gold[f"temp_max_{hours}h"] = gold.groupby(machine_column)["temp_max_1h"].transform(
+            lambda s, w=hours: s.rolling(w, min_periods=1).max()
+        )
+        gold[f"temp_std_{hours}h"] = gold.groupby(machine_column)["temp_mean_1h"].transform(
+            lambda s, w=hours: s.rolling(w, min_periods=2).std()
+        )
+        gold[f"pressure_mean_{hours}h"] = gold.groupby(machine_column)["pressure_mean_1h"].transform(
+            lambda s, w=hours: s.rolling(w, min_periods=1).mean()
+        )
+        gold[f"pressure_max_{hours}h"] = gold.groupby(machine_column)["pressure_max_1h"].transform(
+            lambda s, w=hours: s.rolling(w, min_periods=1).max()
+        )
+        gold[f"pressure_std_{hours}h"] = gold.groupby(machine_column)["pressure_mean_1h"].transform(
+            lambda s, w=hours: s.rolling(w, min_periods=2).std()
+        )
+
+    # Trend features: temperature and pressure change over the past 6 hours
+    gold["temp_trend_6h"] = gold.groupby(machine_column)["temp_mean_1h"].transform(
+        lambda s: s - s.shift(6)
     )
-    gold["temp_max_24h"] = gold.groupby(machine_column)["temp_max_1h"].transform(
-        lambda series: series.rolling(24, min_periods=1).max()
-    )
-    gold["temp_std_24h"] = gold.groupby(machine_column)["temp_mean_1h"].transform(
-        lambda series: series.rolling(24, min_periods=2).std()
-    )
-    gold["pressure_mean_24h"] = gold.groupby(machine_column)["pressure_mean_1h"].transform(
-        lambda series: series.rolling(24, min_periods=1).mean()
-    )
-    gold["pressure_std_24h"] = gold.groupby(machine_column)["pressure_mean_1h"].transform(
-        lambda series: series.rolling(24, min_periods=2).std()
+    gold["pressure_trend_6h"] = gold.groupby(machine_column)["pressure_mean_1h"].transform(
+        lambda s: s - s.shift(6)
     )
 
+    # Rolling z-score: standardised anomaly score relative to the 24h baseline
+    temp_std_24h_safe = gold["temp_std_24h"].replace(0.0, np.nan)
+    gold["temp_zscore_24h"] = (
+        (gold["temp_mean_1h"] - gold["temp_mean_24h"]) / temp_std_24h_safe
+    ).clip(-10.0, 10.0)
+
+    # Incident features
     incident_events = incident_silver.copy()
     incident_events["window_start"] = incident_events["event_ts"].dt.floor("h")
     incident_features = (
@@ -508,23 +536,42 @@ def build_gold_dataset_candidate(
             incident_max_severity_1h=("severity", "max"),
         )
     )
-    gold = gold.merge(
-        incident_features,
-        on=[machine_column, "window_start"],
-        how="left",
-    )
+    gold = gold.merge(incident_features, on=[machine_column, "window_start"], how="left")
     gold["incident_count_1h"] = gold["incident_count_1h"].fillna(0)
 
     gold["incident_count_prev_24h"] = gold.groupby(machine_column)["incident_count_1h"].transform(
-        lambda series: series.rolling(24, min_periods=1).sum()
+        lambda s: s.rolling(24, min_periods=1).sum()
     )
     gold["incident_max_severity_prev_24h"] = gold.groupby(machine_column)["incident_max_severity_1h"].transform(
-        lambda series: series.rolling(24, min_periods=1).max()
+        lambda s: s.rolling(24, min_periods=1).max()
     )
-    gold["future_incident_count_24h"] = gold.groupby(machine_column)["incident_count_1h"].transform(
-        lambda series: series[::-1].rolling(24, min_periods=1).sum()[::-1]
+    # 7-day lookback captures chronic maintenance patterns beyond the daily window
+    gold["incident_count_prev_7d"] = gold.groupby(machine_column)["incident_count_1h"].transform(
+        lambda s: s.rolling(168, min_periods=1).sum()
     )
-    gold["label_failure_next_24h"] = gold["future_incident_count_24h"] > 0
+
+    # Hours since last incident per machine (timestamp-aware; NaN if no prior incident)
+    machine_frames: list[pd.DataFrame] = []
+    for _, grp in gold.groupby(machine_column, sort=False):
+        grp = grp.copy()
+        last_incident_ts = grp["window_start"].where(grp["incident_count_1h"] > 0).ffill()
+        grp["hours_since_last_incident"] = (
+            (grp["window_start"] - last_incident_ts).dt.total_seconds() / 3600
+        )
+        machine_frames.append(grp)
+    gold = (
+        pd.concat(machine_frames)
+        .sort_values([machine_column, "window_start"])
+        .reset_index(drop=True)
+    )
+
+    # Multi-horizon lookahead labels — future window only, no leakage into features
+    for hours in [6, 12, 24, 48]:
+        future_count = gold.groupby(machine_column)["incident_count_1h"].transform(
+            lambda s, w=hours: s[::-1].rolling(w, min_periods=1).sum()[::-1]
+        )
+        gold[f"future_incident_count_{hours}h"] = future_count
+        gold[f"label_failure_next_{hours}h"] = future_count > 0
 
     gold["split_set"] = np.select(
         [
