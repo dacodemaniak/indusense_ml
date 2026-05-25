@@ -29,6 +29,26 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from indusense.db.base import Base, TimestampMixin
 
 
+INCIDENT_TYPE_COLS: list[str] = [
+    "type_surchauffe",
+    "type_baisse_pression",
+    "type_vibration",
+    "type_bruit_mecanique",
+    "type_surconsommation",
+    "type_blocage_mecanique",
+    "type_alarme_capteur",
+    "type_arret_urgence",
+    "type_defaut_qualite",
+]
+
+
+def _pg_enum(enum_cls: type, *, name: str) -> Enum:
+    # SQLAlchemy defaults to member names (RUNNING, TRAIN…) for native enums;
+    # values_callable forces it to use the Python values (running, train…)
+    # which match what the Alembic migration stored in PostgreSQL.
+    return Enum(enum_cls, name=name, values_callable=lambda x: [e.value for e in x])
+
+
 class IngestionStatus(str, enum.Enum):
     PENDING = "pending"
     RUNNING = "running"
@@ -71,7 +91,7 @@ class IngestionBatch(TimestampMixin, Base):
     rows_loaded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     rows_rejected: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[IngestionStatus] = mapped_column(
-        Enum(IngestionStatus, name="ingestion_status"),
+        _pg_enum(IngestionStatus, name="ingestion_status"),
         nullable=False,
         default=IngestionStatus.PENDING,
     )
@@ -186,6 +206,39 @@ class BronzeIncidentRaw(TimestampMixin, Base):
     severity_raw: Mapped[str | None] = mapped_column(String(16))
     shift_raw: Mapped[str | None] = mapped_column(String(32))
     comment_raw: Mapped[str | None] = mapped_column(Text)
+    type_surchauffe: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_baisse_pression: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_vibration: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_bruit_mecanique: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_surconsommation: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_blocage_mecanique: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_alarme_capteur: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_arret_urgence: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_defaut_qualite: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    parse_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    rejected_reason: Mapped[str | None] = mapped_column(Text)
+
+
+class BronzeWeatherRaw(TimestampMixin, Base):
+    __tablename__ = "bronze_weather_raw"
+
+    weather_raw_id: Mapped[int] = mapped_column(
+        BigInteger,
+        Identity(always=False),
+        primary_key=True,
+    )
+    ingestion_batch_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("ingestion_batch.ingestion_batch_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    row_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    timestamp_raw: Mapped[str | None] = mapped_column(String(128))
+    temp_raw: Mapped[str | None] = mapped_column(String(32))
+    humidity_raw: Mapped[str | None] = mapped_column(String(32))
+    pressure_raw: Mapped[str | None] = mapped_column(String(32))
+    wind_speed_raw: Mapped[str | None] = mapped_column(String(32))
+    is_imputed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     parse_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     rejected_reason: Mapped[str | None] = mapped_column(Text)
 
@@ -206,7 +259,7 @@ class DataQualityIssue(TimestampMixin, Base):
     dataset_name: Mapped[str] = mapped_column(String(64), nullable=False)
     rule_code: Mapped[str] = mapped_column(String(64), nullable=False)
     severity: Mapped[DataQualitySeverity] = mapped_column(
-        Enum(DataQualitySeverity, name="data_quality_severity"),
+        _pg_enum(DataQualitySeverity, name="data_quality_severity"),
         nullable=False,
     )
     entity_key: Mapped[str | None] = mapped_column(String(128))
@@ -237,7 +290,7 @@ class SilverSensorReading(TimestampMixin, Base):
     )
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     sensor_type: Mapped[SensorType] = mapped_column(
-        Enum(SensorType, name="sensor_type"),
+        _pg_enum(SensorType, name="sensor_type"),
         nullable=False,
     )
     sensor_value: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
@@ -281,6 +334,15 @@ class SilverIncident(TimestampMixin, Base):
     shift: Mapped[str | None] = mapped_column(String(32))
     comment: Mapped[str | None] = mapped_column(Text)
     is_label_event: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    type_surchauffe: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_baisse_pression: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_vibration: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_bruit_mecanique: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_surconsommation: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_blocage_mecanique: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_alarme_capteur: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_arret_urgence: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    type_defaut_qualite: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     ingestion_batch_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         ForeignKey("ingestion_batch.ingestion_batch_id", ondelete="RESTRICT"),
@@ -289,6 +351,30 @@ class SilverIncident(TimestampMixin, Base):
 
     machine: Mapped["Machine"] = relationship(back_populates="incidents")
     operator: Mapped["Operator"] = relationship(back_populates="incidents")
+
+
+class SilverWeatherReading(TimestampMixin, Base):
+    __tablename__ = "silver_weather_reading"
+    __table_args__ = (
+        UniqueConstraint("observed_at", name="silver_weather_observed_at_unique"),
+    )
+
+    weather_reading_id: Mapped[int] = mapped_column(
+        BigInteger,
+        Identity(always=False),
+        primary_key=True,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    temp_celsius: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    humidity_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    pressure_hpa: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    wind_speed_ms: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    is_imputed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    ingestion_batch_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("ingestion_batch.ingestion_batch_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
 
 
 class GoldMachineHourlyFeature(TimestampMixin, Base):
@@ -341,13 +427,27 @@ class GoldMachineHourlyFeature(TimestampMixin, Base):
     incident_max_severity_prev_24h: Mapped[int | None] = mapped_column(SmallInteger)
     incident_count_prev_7d: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     hours_since_last_incident: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    # Incident type rolling counts (24h lookback per type)
+    type_surchauffe_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_baisse_pression_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_vibration_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_bruit_mecanique_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_surconsommation_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_blocage_mecanique_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_alarme_capteur_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_arret_urgence_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    type_defaut_qualite_count_prev_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Ambient weather features (joined from SilverWeatherReading by hour)
+    ambient_temp_c: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    ambient_humidity_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    ambient_pressure_hpa: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
     # Multi-horizon failure labels
     label_failure_next_6h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     label_failure_next_12h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     label_failure_next_24h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     label_failure_next_48h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     split_set: Mapped[SplitSet] = mapped_column(
-        Enum(SplitSet, name="split_set"),
+        _pg_enum(SplitSet, name="split_set"),
         nullable=False,
         default=SplitSet.TRAIN,
     )

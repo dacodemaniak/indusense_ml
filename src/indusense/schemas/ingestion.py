@@ -73,6 +73,15 @@ class IncidentInput(BaseModel):
     operator_badge_raw: str | None = None
     shift_raw: str | None = None
     comment_raw: str | None = None
+    type_surchauffe: int = 0
+    type_baisse_pression: int = 0
+    type_vibration: int = 0
+    type_bruit_mecanique: int = 0
+    type_surconsommation: int = 0
+    type_blocage_mecanique: int = 0
+    type_alarme_capteur: int = 0
+    type_arret_urgence: int = 0
+    type_defaut_qualite: int = 0
 
     incident_code: str | None = None
     machine_code: str | None = None

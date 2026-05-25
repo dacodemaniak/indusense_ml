@@ -1,0 +1,229 @@
+2026-05-12 12:11:39 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-12 12:11:41 | INFO | __main__:main:57 | Migrations applied
+2026-05-12 12:11:43 | INFO | indusense.pipeline.runner:run_pipeline:114 | Step 1/3 — Bronze: loading source files
+2026-05-12 12:11:43 | INFO | indusense.pipeline.runner:_truncate_facts:61 | Fact tables truncated (Bronze, Silver, Gold)
+2026-05-12 12:11:43 | ERROR | __main__:main:71 | Pipeline failed: (psycopg.errors.InvalidTextRepresentation) invalid input value for enum ingestion_status: "RUNNING"
+CONTEXT:  unnamed portal parameter $9 = '...'
+[SQL: INSERT INTO ingestion_batch (ingestion_batch_id, source_name, source_file, started_at, finished_at, rows_read, rows_loaded, rows_rejected, status, created_at, updated_at) VALUES (%(ingestion_batch_id)s::UUID, %(source_name)s::VARCHAR, %(source_file)s::VARCHAR, %(started_at)s::TIMESTAMP WITH TIME ZONE, %(finished_at)s::TIMESTAMP WITH TIME ZONE, %(rows_read)s::INTEGER, %(rows_loaded)s::INTEGER, %(rows_rejected)s::INTEGER, %(status)s, %(created_at)s::TIMESTAMP WITHOUT TIME ZONE, %(updated_at)s::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: {'ingestion_batch_id': UUID('8eb267b5-c3db-4116-bf9c-5f5db576c4bc'), 'source_name': 'temperature', 'source_file': 'capteurs_temperature.csv', 'started_at': datetime.datetime(2026, 5, 12, 10, 11, 43, 239820, tzinfo=datetime.timezone.utc), 'finished_at': None, 'rows_read': 0, 'rows_loaded': 0, 'rows_rejected': 0, 'status': 'RUNNING', 'created_at': datetime.datetime(2026, 5, 12, 10, 11, 43, 251368, tzinfo=datetime.timezone.utc), 'updated_at': datetime.datetime(2026, 5, 12, 10, 11, 43, 251373, tzinfo=datetime.timezone.utc)}]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+Traceback (most recent call last):
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.InvalidTextRepresentation: invalid input value for enum ingestion_status: "RUNNING"
+CONTEXT:  unnamed portal parameter $9 = '...'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/jlaubert/devspace/indusense/main.py", line 83, in <module>
+    sys.exit(main())
+> File "/Users/jlaubert/devspace/indusense/main.py", line 66, in main
+    summary = run_pipeline(data_dir=args.data_dir)
+  File "/Users/jlaubert/devspace/indusense/src/indusense/pipeline/runner.py", line 117, in run_pipeline
+    temp_batch = load_temperature_file(session, source_files["temperature"])
+  File "/Users/jlaubert/devspace/indusense/src/indusense/pipeline/bronze.py", line 69, in load_temperature_file
+    batch = _create_batch(session, "temperature", path.name)
+  File "/Users/jlaubert/devspace/indusense/src/indusense/pipeline/bronze.py", line 39, in _create_batch
+    session.flush()
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 4331, in flush
+    self._flush(objects)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 4466, in _flush
+    with util.safe_reraise():
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 4427, in _flush
+    flush_context.execute()
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/orm/persistence.py", line 1048, in _emit_insert_statements
+    result = connection.execute(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+sqlalchemy.exc.DataError: (psycopg.errors.InvalidTextRepresentation) invalid input value for enum ingestion_status: "RUNNING"
+CONTEXT:  unnamed portal parameter $9 = '...'
+[SQL: INSERT INTO ingestion_batch (ingestion_batch_id, source_name, source_file, started_at, finished_at, rows_read, rows_loaded, rows_rejected, status, created_at, updated_at) VALUES (%(ingestion_batch_id)s::UUID, %(source_name)s::VARCHAR, %(source_file)s::VARCHAR, %(started_at)s::TIMESTAMP WITH TIME ZONE, %(finished_at)s::TIMESTAMP WITH TIME ZONE, %(rows_read)s::INTEGER, %(rows_loaded)s::INTEGER, %(rows_rejected)s::INTEGER, %(status)s, %(created_at)s::TIMESTAMP WITHOUT TIME ZONE, %(updated_at)s::TIMESTAMP WITHOUT TIME ZONE)]
+[parameters: {'ingestion_batch_id': UUID('8eb267b5-c3db-4116-bf9c-5f5db576c4bc'), 'source_name': 'temperature', 'source_file': 'capteurs_temperature.csv', 'started_at': datetime.datetime(2026, 5, 12, 10, 11, 43, 239820, tzinfo=datetime.timezone.utc), 'finished_at': None, 'rows_read': 0, 'rows_loaded': 0, 'rows_rejected': 0, 'status': 'RUNNING', 'created_at': datetime.datetime(2026, 5, 12, 10, 11, 43, 251368, tzinfo=datetime.timezone.utc), 'updated_at': datetime.datetime(2026, 5, 12, 10, 11, 43, 251373, tzinfo=datetime.timezone.utc)}]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2026-05-12 12:22:43 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-12 12:22:44 | INFO | __main__:main:57 | Migrations applied
+2026-05-12 12:22:45 | INFO | indusense.pipeline.runner:run_pipeline:114 | Step 1/3 — Bronze: loading source files
+2026-05-12 12:22:45 | INFO | indusense.pipeline.runner:_truncate_facts:61 | Fact tables truncated (Bronze, Silver, Gold)
+2026-05-12 12:22:47 | INFO | indusense.pipeline.bronze:load_temperature_file:104 | Bronze temperature loaded: 66800 ok / 0 rejected (batch d6dd17d3-bffa-408e-98cd-f36b5d20354c)
+2026-05-12 12:22:48 | INFO | indusense.pipeline.bronze:load_pressure_file:149 | Bronze pressure loaded: 65529 ok / 0 rejected (batch f136007d-1100-47ec-9eb6-eb7bcf82a789)
+2026-05-12 12:22:48 | INFO | indusense.pipeline.bronze:load_incidents_file:211 | Bronze incidents loaded: 283 ok / 0 rejected (batch 7a3493a8-7295-402e-8490-97b555f5e9f3)
+2026-05-12 12:22:48 | INFO | indusense.pipeline.runner:run_pipeline:130 | Step 2/3 — Silver: normalizing, deduplicating, imputing
+2026-05-12 12:22:48 | INFO | indusense.processing.ingestion:normalize_temperature_units:102 | Temperature normalization converted 73 windows and 15105 points
+2026-05-12 12:23:13 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_temperature with 227 duplicate groups resolved
+2026-05-12 12:23:17 | INFO | indusense.pipeline.silver:build_temperature_silver:165 | Silver temperature: 66573 rows inserted (method=mean)
+2026-05-12 12:23:37 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_pression with 131 duplicate groups resolved
+2026-05-12 12:23:41 | INFO | indusense.pipeline.silver:build_pressure_silver:244 | Silver pressure: 65398 rows inserted (method=mean)
+2026-05-12 12:23:41 | INFO | indusense.processing.ingestion:deduplicate_incidents:212 | Deduplicated incidents with 0 duplicate groups resolved
+2026-05-12 12:23:41 | INFO | indusense.pipeline.silver:build_incident_silver:313 | Silver incidents: 283 rows inserted
+2026-05-12 12:23:41 | INFO | indusense.pipeline.runner:run_pipeline:143 | Step 3/3 — Gold: building multi-horizon rolling window features
+2026-05-12 12:23:42 | INFO | indusense.processing.ingestion:build_gold_dataset_candidate:584 | Gold dataset candidate built with 66678 rows
+2026-05-12 12:23:47 | INFO | indusense.pipeline.gold:build_gold:192 | Gold dataset: 66678 rows inserted
+2026-05-12 12:23:47 | INFO | indusense.pipeline.runner:run_pipeline:149 | Pipeline complete: {'bronze_temperature_loaded': 66800, 'bronze_temperature_rejected': 0, 'bronze_pressure_loaded': 65529, 'bronze_pressure_rejected': 0, 'bronze_incidents_loaded': 283, 'bronze_incidents_rejected': 0, 'silver_temperature_inserted': 66573, 'silver_pressure_inserted': 65398, 'silver_incidents_inserted': 283, 'gold_rows_inserted': 66678}
+2026-05-13 08:57:08 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-13 09:01:50 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-13 09:01:51 | INFO | __main__:main:57 | Migrations applied
+2026-05-13 09:01:52 | ERROR | __main__:main:71 | Pipeline failed: Usecols do not match columns, columns expected but not found: ['timestamp']
+Traceback (most recent call last):
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/python_parser.py", line 792, in _handle_usecols
+    col_indices.append(usecols_key.index(col))
+ValueError: 'timestamp' is not in list
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/jlaubert/devspace/indusense/main.py", line 83, in <module>
+    sys.exit(main())
+> File "/Users/jlaubert/devspace/indusense/main.py", line 66, in main
+    summary = run_pipeline(data_dir=args.data_dir)
+  File "/Users/jlaubert/devspace/indusense/src/indusense/pipeline/runner.py", line 135, in run_pipeline
+    weather_start, weather_end = _detect_weather_date_range(source_files["temperature"])
+  File "/Users/jlaubert/devspace/indusense/src/indusense/pipeline/runner.py", line 61, in _detect_weather_date_range
+    df = pd.read_csv(temp_path, dtype=str, usecols=["timestamp"], engine="python")
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 873, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 300, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1645, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1922, in _make_engine
+    return mapping[engine](f, **self.options)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/python_parser.py", line 156, in __init__
+    ) = self._infer_columns()
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/python_parser.py", line 727, in _infer_columns
+    columns = self._handle_usecols(
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/python_parser.py", line 794, in _handle_usecols
+    self._validate_usecols_names(self.usecols, usecols_key)
+  File "/Users/jlaubert/devspace/indusense/.venv/lib/python3.13/site-packages/pandas/io/parsers/base_parser.py", line 662, in _validate_usecols_names
+    raise ValueError(
+ValueError: Usecols do not match columns, columns expected but not found: ['timestamp']
+2026-05-13 09:19:42 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-13 09:19:42 | INFO | __main__:main:57 | Migrations applied
+2026-05-13 09:19:43 | INFO | indusense.pipeline.runner:run_pipeline:141 | Step 1/3 — Bronze: loading source files
+2026-05-13 09:19:46 | INFO | indusense.pipeline.runner:_truncate_facts:78 | Fact tables truncated (Bronze, Silver, Gold)
+2026-05-13 09:19:49 | INFO | indusense.pipeline.bronze:load_temperature_file:106 | Bronze temperature loaded: 66800 ok / 0 rejected (batch 3a278bf7-63c5-425a-9751-be2bec4bd151)
+2026-05-13 09:19:50 | INFO | indusense.pipeline.bronze:load_pressure_file:151 | Bronze pressure loaded: 65529 ok / 0 rejected (batch 260ba0a0-0643-4a64-9fc7-eae4ab936a2d)
+2026-05-13 09:19:50 | INFO | indusense.pipeline.bronze:load_incidents_file:220 | Bronze incidents loaded: 283 ok / 0 rejected (batch 16c45f3c-002f-464d-839a-ca30bb78c189)
+2026-05-13 09:19:50 | INFO | indusense.weather.fetcher:fetch_or_load_weather:151 | Fetching 489 days from OpenWeather API…
+2026-05-13 09:19:50 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-10: OpenWeather API error 401 for 2025-01-10: Unauthorized
+2026-05-13 09:19:51 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-11: OpenWeather API error 401 for 2025-01-11: Unauthorized
+2026-05-13 09:19:51 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-12: OpenWeather API error 401 for 2025-01-12: Unauthorized
+2026-05-13 09:19:51 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-13: OpenWeather API error 401 for 2025-01-13: Unauthorized
+2026-05-13 09:19:52 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-14: OpenWeather API error 401 for 2025-01-14: Unauthorized
+2026-05-13 09:19:52 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-15: OpenWeather API error 401 for 2025-01-15: Unauthorized
+2026-05-13 09:19:52 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-16: OpenWeather API error 401 for 2025-01-16: Unauthorized
+2026-05-13 09:19:53 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-17: OpenWeather API error 401 for 2025-01-17: Unauthorized
+2026-05-13 09:19:53 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-18: OpenWeather API error 401 for 2025-01-18: Unauthorized
+2026-05-13 09:19:53 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-19: OpenWeather API error 401 for 2025-01-19: Unauthorized
+2026-05-13 09:19:54 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-20: OpenWeather API error 401 for 2025-01-20: Unauthorized
+2026-05-13 09:19:54 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-21: OpenWeather API error 401 for 2025-01-21: Unauthorized
+2026-05-13 09:19:54 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-22: OpenWeather API error 401 for 2025-01-22: Unauthorized
+2026-05-13 09:19:55 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-23: OpenWeather API error 401 for 2025-01-23: Unauthorized
+2026-05-13 09:19:55 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-24: OpenWeather API error 401 for 2025-01-24: Unauthorized
+2026-05-13 09:19:56 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-25: OpenWeather API error 401 for 2025-01-25: Unauthorized
+2026-05-13 09:19:56 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-26: OpenWeather API error 401 for 2025-01-26: Unauthorized
+2026-05-13 09:19:56 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-27: OpenWeather API error 401 for 2025-01-27: Unauthorized
+2026-05-13 09:19:56 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-28: OpenWeather API error 401 for 2025-01-28: Unauthorized
+2026-05-13 09:19:57 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-29: OpenWeather API error 401 for 2025-01-29: Unauthorized
+2026-05-13 09:19:57 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-30: OpenWeather API error 401 for 2025-01-30: Unauthorized
+2026-05-13 09:19:57 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-31: OpenWeather API error 401 for 2025-01-31: Unauthorized
+2026-05-13 09:19:58 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-01: OpenWeather API error 401 for 2025-02-01: Unauthorized
+2026-05-13 09:19:58 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-02: OpenWeather API error 401 for 2025-02-02: Unauthorized
+2026-05-13 09:19:58 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-03: OpenWeather API error 401 for 2025-02-03: Unauthorized
+2026-05-13 09:19:59 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-04: OpenWeather API error 401 for 2025-02-04: Unauthorized
+2026-05-13 09:19:59 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-05: OpenWeather API error 401 for 2025-02-05: Unauthorized
+2026-05-13 09:19:59 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-06: OpenWeather API error 401 for 2025-02-06: Unauthorized
+2026-05-13 09:20:01 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-07: OpenWeather API error 401 for 2025-02-07: Unauthorized
+2026-05-13 09:20:01 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-02-08: OpenWeather API error 401 for 2025-02-08: Unauthorized
+2026-05-13 09:24:12 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-13 09:24:13 | INFO | __main__:main:57 | Migrations applied
+2026-05-13 09:24:14 | INFO | indusense.pipeline.runner:run_pipeline:141 | Step 1/3 — Bronze: loading source files
+2026-05-13 09:24:15 | INFO | indusense.pipeline.runner:_truncate_facts:78 | Fact tables truncated (Bronze, Silver, Gold)
+2026-05-13 09:24:16 | INFO | indusense.pipeline.bronze:load_temperature_file:106 | Bronze temperature loaded: 66800 ok / 0 rejected (batch 5eda20c9-fbb8-4536-b300-58ca2151aa81)
+2026-05-13 09:24:17 | INFO | indusense.pipeline.bronze:load_pressure_file:151 | Bronze pressure loaded: 65529 ok / 0 rejected (batch 86f4ac95-5947-41f2-b1c4-cdd3b875be46)
+2026-05-13 09:24:18 | INFO | indusense.pipeline.bronze:load_incidents_file:220 | Bronze incidents loaded: 283 ok / 0 rejected (batch 7a0d2abd-e93e-48a5-a008-f1b9fad7f637)
+2026-05-13 09:24:18 | INFO | indusense.weather.fetcher:fetch_or_load_weather:151 | Fetching 489 days from OpenWeather API…
+2026-05-13 09:24:18 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-10: OpenWeather API error 401 for 2025-01-10: Unauthorized
+2026-05-13 09:24:18 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-11: OpenWeather API error 401 for 2025-01-11: Unauthorized
+2026-05-13 09:24:18 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-12: OpenWeather API error 401 for 2025-01-12: Unauthorized
+2026-05-13 09:24:19 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-13: OpenWeather API error 401 for 2025-01-13: Unauthorized
+2026-05-13 09:24:19 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-14: OpenWeather API error 401 for 2025-01-14: Unauthorized
+2026-05-13 09:24:19 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-15: OpenWeather API error 401 for 2025-01-15: Unauthorized
+2026-05-13 09:24:20 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-16: OpenWeather API error 401 for 2025-01-16: Unauthorized
+2026-05-13 09:24:20 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-17: OpenWeather API error 401 for 2025-01-17: Unauthorized
+2026-05-13 09:24:20 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-18: OpenWeather API error 401 for 2025-01-18: Unauthorized
+2026-05-13 09:24:20 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-19: OpenWeather API error 401 for 2025-01-19: Unauthorized
+2026-05-13 09:24:21 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-20: OpenWeather API error 401 for 2025-01-20: Unauthorized
+2026-05-13 09:24:21 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-21: OpenWeather API error 401 for 2025-01-21: Unauthorized
+2026-05-13 09:24:21 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-22: OpenWeather API error 401 for 2025-01-22: Unauthorized
+2026-05-13 09:24:22 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-23: OpenWeather API error 401 for 2025-01-23: Unauthorized
+2026-05-13 09:24:22 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-24: OpenWeather API error 401 for 2025-01-24: Unauthorized
+2026-05-13 09:24:22 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:157 | Skipping 2025-01-25: OpenWeather API error 401 for 2025-01-25: Unauthorized
+2026-05-13 09:42:56 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-13 09:42:56 | INFO | __main__:main:57 | Migrations applied
+2026-05-13 09:42:57 | INFO | indusense.pipeline.runner:run_pipeline:141 | Step 1/3 — Bronze: loading source files
+2026-05-13 09:42:57 | INFO | indusense.pipeline.runner:_truncate_facts:78 | Fact tables truncated (Bronze, Silver, Gold)
+2026-05-13 09:42:59 | INFO | indusense.pipeline.bronze:load_temperature_file:106 | Bronze temperature loaded: 66800 ok / 0 rejected (batch 00c33f78-15d7-4523-805e-be99b698eb75)
+2026-05-13 09:43:00 | INFO | indusense.pipeline.bronze:load_pressure_file:151 | Bronze pressure loaded: 65529 ok / 0 rejected (batch a1e8d801-7969-4553-9934-6219d5ea50e4)
+2026-05-13 09:43:00 | INFO | indusense.pipeline.bronze:load_incidents_file:220 | Bronze incidents loaded: 283 ok / 0 rejected (batch 2ca34eaa-a066-4432-a54c-37ac7b265f4e)
+2026-05-13 09:43:00 | INFO | indusense.weather.fetcher:fetch_or_load_weather:152 | Fetching 489 days from OpenWeather API…
+2026-05-13 09:43:00 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1736510400&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:00 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-10: OpenWeather API error 401 for 2025-01-10: Unauthorized
+2026-05-13 09:43:00 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1736596800&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:00 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-11: OpenWeather API error 401 for 2025-01-11: Unauthorized
+2026-05-13 09:43:00 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1736683200&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:00 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-12: OpenWeather API error 401 for 2025-01-12: Unauthorized
+2026-05-13 09:43:01 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1736769600&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:01 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-13: OpenWeather API error 401 for 2025-01-13: Unauthorized
+2026-05-13 09:43:01 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1736856000&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:01 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-14: OpenWeather API error 401 for 2025-01-14: Unauthorized
+2026-05-13 09:43:01 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1736942400&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:01 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-15: OpenWeather API error 401 for 2025-01-15: Unauthorized
+2026-05-13 09:43:02 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737028800&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:02 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-16: OpenWeather API error 401 for 2025-01-16: Unauthorized
+2026-05-13 09:43:02 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737115200&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:02 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-17: OpenWeather API error 401 for 2025-01-17: Unauthorized
+2026-05-13 09:43:02 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737201600&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:02 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-18: OpenWeather API error 401 for 2025-01-18: Unauthorized
+2026-05-13 09:43:02 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737288000&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:03 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-19: OpenWeather API error 401 for 2025-01-19: Unauthorized
+2026-05-13 09:43:03 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737374400&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:03 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-20: OpenWeather API error 401 for 2025-01-20: Unauthorized
+2026-05-13 09:43:03 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737460800&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:03 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-21: OpenWeather API error 401 for 2025-01-21: Unauthorized
+2026-05-13 09:43:03 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737547200&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:04 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-22: OpenWeather API error 401 for 2025-01-22: Unauthorized
+2026-05-13 09:43:04 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737633600&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:04 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-23: OpenWeather API error 401 for 2025-01-23: Unauthorized
+2026-05-13 09:43:04 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737720000&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:04 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-24: OpenWeather API error 401 for 2025-01-24: Unauthorized
+2026-05-13 09:43:04 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737806400&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
+2026-05-13 09:43:04 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-25: OpenWeather API error 401 for 2025-01-25: Unauthorized
