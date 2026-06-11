@@ -17,3 +17,9 @@
 2026-05-07 12:50:39 | INFO | indusense.processing.ingestion:deduplicate_incidents:212 | Deduplicated incidents with 0 duplicate groups resolved
 2026-05-07 12:50:39 | INFO | indusense.processing.ingestion:build_gold_dataset_candidate:537 | Gold dataset candidate built with 66678 rows
 2026-05-07 12:50:40 | INFO | indusense.processing.reporting:write_data_ingestion_report:81 | Markdown ingestion report written to artifacts/data-ingestion/20260507125000/report.md
+2026-06-11 15:52:35 | INFO | indusense.processing.ingestion:create_artifact_run_dir:39 | Artifact directory created at artifacts/data-ingestion/20260611155235
+2026-06-11 15:52:36 | INFO | indusense.processing.ingestion:normalize_temperature_units:102 | Temperature normalization converted 0 windows and 0 points
+2026-06-11 15:53:08 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated telemetry with 0 duplicate groups resolved
+2026-06-11 15:53:11 | INFO | indusense.processing.ingestion:deduplicate_incidents:212 | Deduplicated incidents with 0 duplicate groups resolved
+2026-06-11 15:53:31 | INFO | indusense.processing.ingestion:build_gold_from_telemetry:781 | Gold (telemetry) dataset built with 134280 rows
+2026-06-11 15:53:38 | INFO | indusense.processing.reporting:write_data_ingestion_report:81 | Markdown ingestion report written to artifacts/data-ingestion/20260611155235/report.md
