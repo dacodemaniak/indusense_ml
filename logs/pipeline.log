@@ -227,3 +227,30 @@ ValueError: Usecols do not match columns, columns expected but not found: ['time
 2026-05-13 09:43:04 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-24: OpenWeather API error 401 for 2025-01-24: Unauthorized
 2026-05-13 09:43:04 | INFO | indusense.weather.fetcher:_fetch_day:57 | Fetching from OpenWeather API https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=43.599998&lon=1.43333&dt=1737806400&appid=316e9a699843aba32c0842fdbf9416d3&units=metric
 2026-05-13 09:43:04 | WARNING | indusense.weather.fetcher:fetch_or_load_weather:158 | Skipping 2025-01-25: OpenWeather API error 401 for 2025-01-25: Unauthorized
+2026-05-26 10:40:46 | INFO | __main__:main:55 | Running Alembic migrations
+2026-05-26 10:40:47 | INFO | __main__:main:57 | Migrations applied
+2026-05-26 10:40:50 | INFO | indusense.pipeline.runner:run_pipeline:141 | Step 1/3 — Bronze: loading source files
+2026-05-26 10:40:50 | INFO | indusense.pipeline.runner:_truncate_facts:78 | Fact tables truncated (Bronze, Silver, Gold)
+2026-05-26 10:40:52 | INFO | indusense.pipeline.bronze:load_temperature_file:106 | Bronze temperature loaded: 66800 ok / 0 rejected (batch 0d2324e5-e28a-4b81-bafa-85930ec36f96)
+2026-05-26 10:40:53 | INFO | indusense.pipeline.bronze:load_pressure_file:151 | Bronze pressure loaded: 65529 ok / 0 rejected (batch a0becba0-65b2-4130-8d12-ad268c218999)
+2026-05-26 10:40:53 | INFO | indusense.pipeline.bronze:load_incidents_file:220 | Bronze incidents loaded: 283 ok / 0 rejected (batch a8b67f54-eaaf-4f45-9f13-1b8cbd081ffd)
+2026-05-26 10:40:53 | INFO | indusense.weather.fetcher:fetch_or_load_weather:280 | Scraping prevision-meteo.ch : 2025/01
+2026-05-26 10:40:54 | INFO | indusense.weather.fetcher:fetch_or_load_weather:280 | Scraping prevision-meteo.ch : 2025/02
+2026-05-26 10:40:55 | INFO | indusense.weather.fetcher:fetch_or_load_weather:280 | Scraping prevision-meteo.ch : 2025/03
+2026-05-26 10:40:56 | INFO | indusense.weather.fetcher:fetch_or_load_weather:294 | Cache mis à jour : 13440 lignes horaires au total
+2026-05-26 10:40:56 | INFO | indusense.weather.fetcher:fetch_or_load_weather:319 | Imputation : 2976 lignes horaires (moyennes mensuelles)
+2026-05-26 10:40:56 | INFO | indusense.weather.fetcher:fetch_or_load_weather:328 | Météo prête : 16200 lignes pour 2025-01-10 → 2026-12-02
+2026-05-26 10:40:56 | INFO | indusense.pipeline.bronze:load_weather_data:261 | Bronze weather loaded: 16200 rows (4440 imputed) for 2025-01-10 → 2026-12-02
+2026-05-26 10:40:56 | INFO | indusense.pipeline.runner:run_pipeline:159 | Step 2/3 — Silver: normalizing, deduplicating, imputing
+2026-05-26 10:40:57 | INFO | indusense.processing.ingestion:normalize_temperature_units:102 | Temperature normalization converted 73 windows and 15105 points
+2026-05-26 10:41:13 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_temperature with 227 duplicate groups resolved
+2026-05-26 10:41:17 | INFO | indusense.pipeline.silver:build_temperature_silver:168 | Silver temperature: 66573 rows inserted (method=mean)
+2026-05-26 10:41:33 | INFO | indusense.processing.ingestion:deduplicate_sensor_records:173 | Deduplicated capteurs_pression with 131 duplicate groups resolved
+2026-05-26 10:41:36 | INFO | indusense.pipeline.silver:build_pressure_silver:247 | Silver pressure: 65398 rows inserted (method=mean)
+2026-05-26 10:41:37 | INFO | indusense.processing.ingestion:deduplicate_incidents:212 | Deduplicated incidents with 0 duplicate groups resolved
+2026-05-26 10:41:37 | INFO | indusense.pipeline.silver:build_incident_silver:314 | Silver incidents: 283 rows inserted
+2026-05-26 10:41:37 | INFO | indusense.pipeline.silver:build_weather_silver:367 | Silver weather: 16200 rows inserted (4440 imputed by monthly mean)
+2026-05-26 10:41:37 | INFO | indusense.pipeline.runner:run_pipeline:174 | Step 3/3 — Gold: building multi-horizon rolling window features
+2026-05-26 10:41:38 | INFO | indusense.processing.ingestion:build_gold_dataset_candidate:584 | Gold dataset candidate built with 66678 rows
+2026-05-26 10:41:45 | INFO | indusense.pipeline.gold:build_gold:254 | Gold dataset: 66678 rows inserted
+2026-05-26 10:41:45 | INFO | indusense.pipeline.runner:run_pipeline:180 | Pipeline complete: {'bronze_temperature_loaded': 66800, 'bronze_temperature_rejected': 0, 'bronze_pressure_loaded': 65529, 'bronze_pressure_rejected': 0, 'bronze_incidents_loaded': 283, 'bronze_incidents_rejected': 0, 'bronze_weather_loaded': 16200, 'silver_temperature_inserted': 66573, 'silver_pressure_inserted': 65398, 'silver_incidents_inserted': 283, 'silver_weather_inserted': 16200, 'gold_rows_inserted': 66678}

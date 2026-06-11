@@ -116,6 +116,7 @@ class Machine(TimestampMixin, Base):
     machine_code: Mapped[str] = mapped_column(String(16), nullable=False, unique=True)
     commissioning_date: Mapped[date | None] = mapped_column(Date)
     max_daily_capacity: Mapped[int | None] = mapped_column(Integer)
+    max_hourly_capacity_pieces: Mapped[int | None] = mapped_column(Integer)
     model: Mapped[str | None] = mapped_column(String(32))
     production_line: Mapped[str | None] = mapped_column(String(16), index=True)
     location: Mapped[str | None] = mapped_column(String(16), index=True)
@@ -125,6 +126,34 @@ class Machine(TimestampMixin, Base):
     sensor_readings: Mapped[list["SilverSensorReading"]] = relationship(back_populates="machine")
     incidents: Mapped[list["SilverIncident"]] = relationship(back_populates="machine")
     hourly_features: Mapped[list["GoldMachineHourlyFeature"]] = relationship(back_populates="machine")
+    maintenances: Mapped[list["Maintenance"]] = relationship(back_populates="machine")
+    telemetry_readings: Mapped[list["SilverTelemetryReading"]] = relationship(back_populates="machine")
+
+
+class Maintenance(TimestampMixin, Base):
+    __tablename__ = "maintenance"
+
+    maintenance_db_id: Mapped[int] = mapped_column(
+        BigInteger,
+        Identity(always=False),
+        primary_key=True,
+    )
+    maintenance_id: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    machine_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("machine.machine_id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    maintenance_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    maintenance_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    component: Mapped[str] = mapped_column(String(64), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    related_incident_code: Mapped[str | None] = mapped_column(String(16))
+    duration_hours: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+
+    machine: Mapped["Machine"] = relationship(back_populates="maintenances")
 
 
 class Operator(TimestampMixin, Base):
@@ -215,6 +244,31 @@ class BronzeIncidentRaw(TimestampMixin, Base):
     type_alarme_capteur: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     type_arret_urgence: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     type_defaut_qualite: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    parse_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    rejected_reason: Mapped[str | None] = mapped_column(Text)
+
+
+class BronzeTelemetryRaw(TimestampMixin, Base):
+    __tablename__ = "bronze_telemetry_raw"
+
+    telemetry_raw_id: Mapped[int] = mapped_column(
+        BigInteger,
+        Identity(always=False),
+        primary_key=True,
+    )
+    ingestion_batch_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("ingestion_batch.ingestion_batch_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    row_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    machine_id_raw: Mapped[str | None] = mapped_column(String(64))
+    timestamp_raw: Mapped[str | None] = mapped_column(String(128))
+    temperature_raw: Mapped[str | None] = mapped_column(String(64))
+    pressure_raw: Mapped[str | None] = mapped_column(String(64))
+    voltage_raw: Mapped[str | None] = mapped_column(String(64))
+    rotation_raw: Mapped[str | None] = mapped_column(String(64))
+    pieces_raw: Mapped[str | None] = mapped_column(String(64))
     parse_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     rejected_reason: Mapped[str | None] = mapped_column(Text)
 
@@ -377,6 +431,41 @@ class SilverWeatherReading(TimestampMixin, Base):
     )
 
 
+class SilverTelemetryReading(TimestampMixin, Base):
+    __tablename__ = "silver_telemetry_reading"
+    __table_args__ = (
+        UniqueConstraint("machine_id", "observed_at", name="silver_telemetry_machine_ts"),
+    )
+
+    telemetry_reading_id: Mapped[int] = mapped_column(
+        BigInteger,
+        Identity(always=False),
+        primary_key=True,
+    )
+    machine_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("machine.machine_id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    temperature_c: Mapped[Decimal | None] = mapped_column(Numeric(8, 3))
+    pressure_bar: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    voltage_mean_v: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    rotation_mean_rpm: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    pieces_produced: Mapped[int | None] = mapped_column(Integer)
+    is_missing_temp: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_missing_pressure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_duplicate: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    ingestion_batch_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("ingestion_batch.ingestion_batch_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    machine: Mapped["Machine"] = relationship(back_populates="telemetry_readings")
+
+
 class GoldMachineHourlyFeature(TimestampMixin, Base):
     __tablename__ = "gold_machine_hourly_feature"
     __table_args__ = (
@@ -441,6 +530,25 @@ class GoldMachineHourlyFeature(TimestampMixin, Base):
     ambient_temp_c: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
     ambient_humidity_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     ambient_pressure_hpa: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    # Voltage rolling features (6h / 12h / 24h)
+    voltage_mean_6h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    voltage_std_6h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    voltage_mean_12h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    voltage_std_12h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    voltage_mean_24h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    voltage_std_24h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    # Rotation rolling features (6h / 12h / 24h)
+    rotation_mean_6h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    rotation_std_6h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    rotation_mean_12h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    rotation_std_12h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    rotation_mean_24h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    rotation_std_24h: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
+    # Production and maintenance features
+    pieces_produced_sum_24h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    capacity_utilization_pct: Mapped[Decimal | None] = mapped_column(Numeric(6, 3))
+    days_since_last_maintenance: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    maintenance_count_prev_30d: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # Multi-horizon failure labels
     label_failure_next_6h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     label_failure_next_12h: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

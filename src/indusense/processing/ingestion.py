@@ -583,3 +583,200 @@ def build_gold_dataset_candidate(
     )
     logger.info("Gold dataset candidate built with {} rows", len(gold))
     return gold
+
+
+def build_gold_from_telemetry(
+    telemetry_silver: pd.DataFrame,
+    incident_silver: pd.DataFrame,
+    machine_meta: pd.DataFrame | None = None,
+    maintenance_df: pd.DataFrame | None = None,
+    time_column: str = "event_ts",
+    machine_column: str = "machine_id_std",
+) -> pd.DataFrame:
+    """Build Gold dataset from unified telemetry (temperature, pressure, voltage, rotation, pieces).
+
+    Accepts the new telemetry.csv format where all signals are in one row per machine per hour.
+    Adds voltage/rotation rolling features, production capacity utilization, and maintenance
+    lookback on top of the standard temperature/pressure/incident features.
+
+    Args:
+        telemetry_silver: Silver telemetry with columns: machine_id_std, event_ts,
+            temperature_c, pressure_bar, voltage_mean_v, rotation_mean_rpm, pieces_produced.
+        incident_silver: Silver incidents with columns: machine_id_std, event_ts, severity,
+            incident_id, type_* columns.
+        machine_meta: Optional machine reference with machine_id_std, max_hourly_capacity_pieces,
+            criticality.
+        maintenance_df: Optional maintenance log with machine_id_std, maintenance_at.
+        time_column: Name of the timestamp column.
+        machine_column: Name of the machine identifier column.
+    """
+    tel = telemetry_silver.copy()
+    tel["window_start"] = tel[time_column].dt.floor("h")
+
+    # ── Hourly aggregation for all 5 signals ─────────────────────────────────
+    agg_dict: dict[str, tuple[str, str]] = {}
+    for signal, col in [
+        ("temp", "temperature_c"),
+        ("pressure", "pressure_bar"),
+        ("voltage", "voltage_mean_v"),
+        ("rotation", "rotation_mean_rpm"),
+    ]:
+        if col in tel.columns:
+            agg_dict[f"{signal}_mean_1h"] = (col, "mean")
+            agg_dict[f"{signal}_max_1h"] = (col, "max")
+
+    if "pieces_produced" in tel.columns:
+        agg_dict["pieces_produced_sum_1h"] = ("pieces_produced", "sum")
+
+    hourly = (
+        tel.dropna(subset=["window_start"])
+        .groupby([machine_column, "window_start"], as_index=False)
+        .agg(**agg_dict)
+    )
+    hourly["window_end"] = hourly["window_start"] + pd.Timedelta(hours=1)
+
+    # ── Rolling windows for each signal ─────────────────────────────────────
+    for hours in [6, 12, 24]:
+        for signal in ("temp", "pressure", "voltage", "rotation"):
+            mean_col = f"{signal}_mean_1h"
+            if mean_col not in hourly.columns:
+                continue
+            hourly[f"{signal}_mean_{hours}h"] = hourly.groupby(machine_column)[mean_col].transform(
+                lambda s, w=hours: s.rolling(w, min_periods=1).mean()
+            )
+            hourly[f"{signal}_max_{hours}h"] = hourly.groupby(machine_column)[mean_col].transform(
+                lambda s, w=hours: s.rolling(w, min_periods=1).max()
+            )
+            hourly[f"{signal}_std_{hours}h"] = hourly.groupby(machine_column)[mean_col].transform(
+                lambda s, w=hours: s.rolling(w, min_periods=2).std()
+            )
+
+    # ── Trend features (6h delta) ─────────────────────────────────────────────
+    for signal in ("temp", "pressure", "voltage", "rotation"):
+        mean_col = f"{signal}_mean_1h"
+        if mean_col in hourly.columns:
+            hourly[f"{signal}_trend_6h"] = hourly.groupby(machine_column)[mean_col].transform(
+                lambda s: s - s.shift(6)
+            )
+
+    # ── Temperature z-score (24h) ─────────────────────────────────────────────
+    if "temp_std_24h" in hourly.columns and "temp_mean_1h" in hourly.columns:
+        std_safe = hourly["temp_std_24h"].replace(0.0, np.nan)
+        hourly["temp_zscore_24h"] = (
+            (hourly["temp_mean_1h"] - hourly["temp_mean_24h"]) / std_safe
+        ).clip(-10.0, 10.0)
+
+    # ── 24h production sum ────────────────────────────────────────────────────
+    if "pieces_produced_sum_1h" in hourly.columns:
+        hourly["pieces_produced_sum_24h"] = hourly.groupby(machine_column)["pieces_produced_sum_1h"].transform(
+            lambda s: s.rolling(24, min_periods=1).sum()
+        ).fillna(0).astype(int)
+
+    # ── Capacity utilization (requires machine_meta) ──────────────────────────
+    if machine_meta is not None and "max_hourly_capacity_pieces" in machine_meta.columns:
+        meta_cols = machine_meta[[machine_column, "max_hourly_capacity_pieces"]].drop_duplicates(machine_column)
+        hourly = hourly.merge(meta_cols, on=machine_column, how="left")
+        if "pieces_produced_sum_24h" in hourly.columns:
+            max_24h = (hourly["max_hourly_capacity_pieces"] * 24).replace(0, np.nan)
+            hourly["capacity_utilization_pct"] = (hourly["pieces_produced_sum_24h"] / max_24h * 100).clip(0, 100)
+        hourly = hourly.drop(columns=["max_hourly_capacity_pieces"], errors="ignore")
+
+    # ── Incident features ─────────────────────────────────────────────────────
+    inc = incident_silver.copy()
+    inc["window_start"] = inc[time_column].dt.floor("h")
+
+    INCIDENT_TYPE_COLS = [
+        "type_surchauffe", "type_baisse_pression", "type_vibration",
+        "type_bruit_mecanique", "type_surconsommation", "type_blocage_mecanique",
+        "type_alarme_capteur", "type_arret_urgence", "type_defaut_qualite",
+    ]
+
+    inc_hourly = (
+        inc.groupby([machine_column, "window_start"], as_index=False)
+        .agg(incident_count_1h=("incident_id", "count"), incident_max_severity_1h=("severity", "max"))
+    )
+    hourly = hourly.merge(inc_hourly, on=[machine_column, "window_start"], how="left")
+    hourly["incident_count_1h"] = hourly["incident_count_1h"].fillna(0)
+
+    hourly["incident_count_prev_24h"] = hourly.groupby(machine_column)["incident_count_1h"].transform(
+        lambda s: s.rolling(24, min_periods=1).sum()
+    )
+    hourly["incident_max_severity_prev_24h"] = hourly.groupby(machine_column)["incident_max_severity_1h"].transform(
+        lambda s: s.rolling(24, min_periods=1).max()
+    )
+    hourly["incident_count_prev_7d"] = hourly.groupby(machine_column)["incident_count_1h"].transform(
+        lambda s: s.rolling(168, min_periods=1).sum()
+    )
+
+    # Hours since last incident
+    machine_frames: list[pd.DataFrame] = []
+    for _, grp in hourly.groupby(machine_column, sort=False):
+        grp = grp.copy()
+        last_ts = grp["window_start"].where(grp["incident_count_1h"] > 0).ffill()
+        grp["hours_since_last_incident"] = (grp["window_start"] - last_ts).dt.total_seconds() / 3600
+        machine_frames.append(grp)
+    hourly = pd.concat(machine_frames).sort_values([machine_column, "window_start"]).reset_index(drop=True)
+
+    # Incident type rolling counts (24h lookback)
+    if any(c in inc.columns for c in INCIDENT_TYPE_COLS):
+        type_hourly = (
+            inc.groupby([machine_column, "window_start"])[
+                [c for c in INCIDENT_TYPE_COLS if c in inc.columns]
+            ]
+            .sum()
+            .reset_index()
+        )
+        hourly = hourly.merge(type_hourly, on=[machine_column, "window_start"], how="left")
+        for col in INCIDENT_TYPE_COLS:
+            if col in hourly.columns:
+                hourly[col] = hourly[col].fillna(0).astype(int)
+                hourly[f"{col}_count_prev_24h"] = (
+                    hourly.groupby(machine_column)[col]
+                    .transform(lambda s: s.rolling(24, min_periods=1).sum())
+                    .fillna(0).astype(int)
+                )
+
+    # ── Maintenance lookback ──────────────────────────────────────────────────
+    if maintenance_df is not None and not maintenance_df.empty:
+        maint = maintenance_df[[machine_column, "maintenance_at"]].dropna().copy()
+        maint["maint_ts"] = pd.to_datetime(maint["maintenance_at"]).dt.floor("h")
+        maint_frames: list[pd.DataFrame] = []
+        for _, grp in hourly.groupby(machine_column, sort=False):
+            machine = grp[machine_column].iloc[0]
+            machine_maint = maint[maint[machine_column] == machine]["maint_ts"].sort_values()
+            grp = grp.copy()
+            grp["days_since_last_maintenance"] = np.nan
+            grp["maintenance_count_prev_30d"] = 0
+            for idx, row in grp.iterrows():
+                past = machine_maint[machine_maint <= row["window_start"]]
+                if not past.empty:
+                    grp.at[idx, "days_since_last_maintenance"] = (
+                        (row["window_start"] - past.iloc[-1]).total_seconds() / 86400
+                    )
+                window_30d_start = row["window_start"] - pd.Timedelta(days=30)
+                grp.at[idx, "maintenance_count_prev_30d"] = int(
+                    ((machine_maint >= window_30d_start) & (machine_maint <= row["window_start"])).sum()
+                )
+            maint_frames.append(grp)
+        hourly = pd.concat(maint_frames).sort_values([machine_column, "window_start"]).reset_index(drop=True)
+
+    # ── Multi-horizon labels ──────────────────────────────────────────────────
+    for hours in [6, 12, 24, 48]:
+        future = hourly.groupby(machine_column)["incident_count_1h"].transform(
+            lambda s, w=hours: s[::-1].rolling(w, min_periods=1).sum()[::-1]
+        )
+        hourly[f"future_incident_count_{hours}h"] = future
+        hourly[f"label_failure_next_{hours}h"] = future > 0
+
+    # ── Train/validation/test split ───────────────────────────────────────────
+    hourly["split_set"] = np.select(
+        [
+            hourly["window_start"] < hourly["window_start"].quantile(0.7),
+            hourly["window_start"] < hourly["window_start"].quantile(0.85),
+        ],
+        ["train", "validation"],
+        default="test",
+    )
+
+    logger.info("Gold (telemetry) dataset built with {} rows", len(hourly))
+    return hourly

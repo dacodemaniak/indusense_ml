@@ -3,6 +3,7 @@
 from indusense.processing.ingestion import (
     ImputationContext,
     build_gold_dataset_candidate,
+    build_gold_from_telemetry,
     build_incident_silver_candidate,
     build_sensor_silver_candidate,
     create_artifact_run_dir,
@@ -17,6 +18,7 @@ from indusense.processing.reporting import write_data_ingestion_report
 __all__ = [
     "ImputationContext",
     "build_gold_dataset_candidate",
+    "build_gold_from_telemetry",
     "build_incident_silver_candidate",
     "build_sensor_silver_candidate",
     "create_artifact_run_dir",
