@@ -13,6 +13,64 @@ L'objectif de la prochaine etape n'est donc pas de charger directement les CSV d
 - la construction de tables Silver normalisees ;
 - la production d'un Gold dataset horaire, pret pour l'entrainement et protege contre le data leakage.
 
+## Gestion des donnees volumineuses — DVC
+
+### Pourquoi DVC ?
+
+Le jeu de donnees Gold produit par le pipeline d'ingestion depasse 100 Mo (jusqu'a 108 Mo par run), seuil au-dela duquel GitHub refuse le push. Plutot que d'exclure ces fichiers par `.gitignore` et de perdre leur tracabilite, DVC (Data Version Control) est integre au depot pour :
+
+- **versionner** les fichiers de donnees en parallele des commits Git, avec un hash MD5 par fichier ;
+- **decoupler** le depot de code (leger, pushe sur GitHub) du stockage des donnees (lourd, pousse vers un remote DVC configure separement) ;
+- **garantir la reproducibilite** : chaque commit Git pointe sur un hash de donnee precis via les fichiers `.dvc`.
+
+### Fichiers suivis par DVC
+
+| Chemin | Taille approx. | Description |
+|--------|---------------|-------------|
+| `datas/` | ~145 Mo total | Donnees brutes sources (CSV/TSV capteurs, incidents, meteo) |
+| `artifacts/data-ingestion/*/gold_dataset_preview.csv` | 12–108 Mo | Previews Gold generees par chaque run d'ingestion |
+
+Les fichiers `.dvc` correspondants sont commites dans Git et servent de pointeurs vers le contenu reel.
+
+### Utilisation
+
+**Recuperer les donnees apres un `git clone` ou `git pull` :**
+
+```bash
+dvc pull
+```
+
+**Apres un nouveau run de pipeline qui produit des fichiers volumineux :**
+
+```bash
+dvc add datas/                                          # re-hasher si le contenu a change
+dvc add artifacts/data-ingestion/<timestamp>/gold_dataset_preview.csv
+git add datas.dvc artifacts/.../gold_dataset_preview.csv.dvc
+git commit -m "chore(data): update DVC tracked files"
+dvc push                                                # envoyer vers le remote configure
+```
+
+### Configurer un remote DVC
+
+Aucun remote n'est encore configure. Ajouter le remote apres avoir choisi un stockage :
+
+```bash
+# Exemple : remote local (developpement)
+dvc remote add -d myremote /chemin/vers/stockage/local
+
+# Exemple : Google Drive
+dvc remote add -d gdrive gdrive://<folder-id>
+
+# Exemple : S3
+dvc remote add -d s3remote s3://mon-bucket/indusense-data
+
+dvc push   # premier envoi des donnees vers le remote
+```
+
+La configuration du remote est stockee dans `.dvc/config` (commite) et les credentials dans `.dvc/config.local` (ignore par Git via `.dvc/.gitignore`).
+
+---
+
 ## Operations a realiser avant l'implementation Alembic / SQLAlchemy
 
 1. Creer une couche `Bronze` qui conserve les lignes brutes, la provenance des fichiers et le statut d'ingestion.
