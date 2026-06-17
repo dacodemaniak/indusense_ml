@@ -666,6 +666,38 @@ def build_gold_from_telemetry(
             (hourly["temp_mean_1h"] - hourly["temp_mean_24h"]) / std_safe
         ).clip(-10.0, 10.0)
 
+    # ── Short-lag delta features (1h, 3h) — gradient directionnel de la rampe ─
+    # Complètent temp_trend_6h en capturant les accélérations sur horizon court.
+    for signal in ("temp", "pressure", "rotation", "voltage"):
+        mean_col = f"{signal}_mean_1h"
+        if mean_col not in hourly.columns:
+            continue
+        for lag in (1, 3):
+            hourly[f"{signal}_delta_{lag}h"] = hourly.groupby(machine_column)[mean_col].transform(
+                lambda s, l=lag: s - s.shift(l)
+            )
+
+    # ── Per-machine z-score (stats train uniquement pour éviter le leakage) ───
+    # Seuil 0.7 identique à l'assignation split_set → même frontière train/val.
+    _q70 = hourly["window_start"].quantile(0.7)
+    _is_train = hourly["window_start"] < _q70
+    for signal in ("temp", "pressure"):
+        mean_col = f"{signal}_mean_1h"
+        if mean_col not in hourly.columns:
+            continue
+        _train_stats = (
+            hourly.loc[_is_train]
+            .groupby(machine_column)[mean_col]
+            .agg(["mean", "std"])
+            .rename(columns={"mean": "_m", "std": "_s"})
+        )
+        hourly = hourly.join(_train_stats, on=machine_column)
+        _safe_std = hourly["_s"].replace(0.0, np.nan)
+        hourly[f"{signal}_zscore_machine"] = (
+            (hourly[mean_col] - hourly["_m"]) / _safe_std
+        ).clip(-10.0, 10.0)
+        hourly = hourly.drop(columns=["_m", "_s"])
+
     # ── 24h production sum ────────────────────────────────────────────────────
     if "pieces_produced_sum_1h" in hourly.columns:
         hourly["pieces_produced_sum_24h"] = hourly.groupby(machine_column)["pieces_produced_sum_1h"].transform(
