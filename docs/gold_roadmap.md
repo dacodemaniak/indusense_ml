@@ -3,6 +3,7 @@
 > **À qui s'adresse ce document ?**
 > À des étudiants en Machine Learning qui veulent comprendre, pas à pas, comment des données brutes industrielles se transforment en un tableau prêt à être entraîné. Chaque étape explique le *quoi*, le *pourquoi* et les *pièges* à éviter.
 
+A conserver
 ---
 
 ## Vue d'ensemble du pipeline

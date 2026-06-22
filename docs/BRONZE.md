@@ -1,7 +1,7 @@
 # Couche Bronze — Du CSV brut à la base de données
 
 > **À qui s'adresse ce document ?**
-> Aux étudiants qui vont construire le Bronze Dataset à partir des fichiers CSV sources. On y explique *quoi faire*, *comment le faire* et surtout *pourquoi* on le fait ainsi. Chaque section correspond à une ou plusieurs cellules dans votre notebook.
+> Aux étudiants qui vont construire le Bronze Dataset à partir des fichiers CSV sources. On y explique *quoi faire*, *comment le faire* et surtout *pourquoi* on le fait ainsi. Chaque section correspond à une ou plusieurs cellules dans le notebook ou dans le dossier src.
 
 ---
 
