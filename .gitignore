@@ -14,3 +14,7 @@ wheels/
 .DS_Store
 Thumbs.db
 /datas
+
+
+# Artifacts
+artifacts
